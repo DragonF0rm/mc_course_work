@@ -23,11 +23,6 @@ main(void)
 	// Enable global interrupts
 	sei();
 
-	// Enable change of interrupt vectors
-	GICR = (1 << IVCE);
-	// Move interrupts to boot Flash section
-	GICR = (1 << IVSEL);
-
 	byte_t props_byte = 0;
 	struct sig_props props;
 	struct sig_generator_task tasks[SIG_GEN_TASKS_CNT];
