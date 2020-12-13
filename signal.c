@@ -103,7 +103,7 @@ sig_get_generator_tasks(struct sig_props *props,
 	tasks[1].level = false;
 }
 
-bool *sig_t0_intr_handler_done = NULL;
+static bool *sig_t0_intr_handler_done = NULL;
 
 ISR(TIMER0_OVF_vect)
 {
