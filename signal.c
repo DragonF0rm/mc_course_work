@@ -103,22 +103,24 @@ sig_get_generator_tasks(struct sig_props *props,
 	tasks[1].level = false;
 }
 
-static bool sig_t0_intr_handler_done = false;
+static bool *sig_t0_intr_handler_done = NULL;
 
 ISR(TIMER0_OVF_vect)
 {
 	if (sig_t0_intr_handler_done) {
-		sig_t0_intr_handler_done = true;
+		*sig_t0_intr_handler_done = true;
+		sig_t0_intr_handler_done = NULL;
 	}
 }
 
 bool *
 sig_generate(struct sig_generator_task *task)
 {
-	assert(sig_t0_intr_handler_done);
+	assert(sig_t0_intr_handler_done == NULL);
 	assert(task);
 
-	sig_t0_intr_handler_done = false;
+	static bool done = false;
+	sig_t0_intr_handler_done = &done;
 
 	if ((SIG_PIN & (1 << SIG_OUT)) != task->level) {
 		SIG_PORT ^= (1 << SIG_OUT);
@@ -126,5 +128,5 @@ sig_generate(struct sig_generator_task *task)
 
 	TCNT0 = T0_MAX_TACTS - task->tacts - 1;
 
-	return &sig_t0_intr_handler_done;
+	return &done;
 }
