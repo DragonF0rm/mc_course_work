@@ -19,6 +19,7 @@ main(void)
 	btns_init();
 	sig_init(CW_CPU_FREQ);
 	spi_init();
+	seg_init();
 
 	// Enable global interrupts
 	sei();

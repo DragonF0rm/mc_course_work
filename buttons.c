@@ -16,6 +16,16 @@
 
 #define BTNS_READY (BTNS_PIN & (1 << BTNS_EN))
 
+static btns_intr_handler_t btns_intr_handler = NULL;
+static void **btns_intr_handler_args;
+
+ISR(INT0_vect)
+{
+	if (btns_intr_handler) {
+		btns_intr_handler(*btns_intr_handler_args);
+	}
+}
+
 static bool btns_initialized = false;
 
 void
@@ -25,6 +35,8 @@ btns_init(void)
 	cli();
 
 	assert(!btns_initialized);
+
+	*btns_intr_handler_args = NULL;
 
 	// Enable interrupts by INT0
 	GICR |= (1 << 6);
@@ -49,16 +61,6 @@ btns_init(void)
 	sei();
 }
 
-static btns_intr_handler_t btns_intr_handler = NULL;
-static void *btns_intr_handler_args = NULL;
-
-ISR(INT0_vect)
-{
-	if (btns_intr_handler) {
-		btns_intr_handler(btns_intr_handler_args);
-	}
-}
-
 void
 btns_set_intr_handler(btns_intr_handler_t handler, void *args)
 {
@@ -66,7 +68,7 @@ btns_set_intr_handler(btns_intr_handler_t handler, void *args)
 	cli();
 
 	btns_intr_handler = handler;
-	btns_intr_handler_args = args;
+	*btns_intr_handler_args = args;
 
 	// Enable global interrupts
 	sei();
@@ -107,7 +109,7 @@ btns_read_byte_async_intr_handler(void *raw_args)
 
 	// Clean up
 	btns_intr_handler = NULL;
-	btns_intr_handler_args = NULL;
+	*btns_intr_handler_args = NULL;
 }
 
 void
@@ -117,7 +119,7 @@ btns_read_byte_async(byte_t *b, bool *ready)
 	assert(ready);
 
 	static struct btns_read_byte_async_intr_handler_args args;
-	assert(btns_intr_handler_args == NULL); // Check if async read in progress
+	assert(*btns_intr_handler_args == NULL); // Check if async read in progress
 
 	args = (struct btns_read_byte_async_intr_handler_args) {
 		b = b,

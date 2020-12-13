@@ -16,13 +16,23 @@
 static byte_t seg_data_to_diaplay[SEG_DATA_TO_DISPLAY_ARR_SIZE] =
 	{SEG_ADDR_FREQ_HI, 0, SEG_ADDR_FREQ_LO, 0, SEG_ADDR_DC_HI, 0, SEG_ADDR_DC_LO, 0};
 static size_t seg_data_to_diaplay_i = 0;
-static bool *seg_display_done = NULL;
+static bool **seg_display_done;
+
+static bool seg_initialized = false;
+
+void
+seg_init(void)
+{
+	assert(!seg_initialized);
+	*seg_display_done = NULL;
+	seg_initialized = true;
+}
 
 void
 seg_display_sig_props_async(struct sig_props *props, bool *done)
 {
 	// Check if nodisplaying in progress
-	assert(seg_display_done == NULL);
+	assert(*seg_display_done == NULL);
 
 	int freq_khz = props->freq / 1000;
 	int dc = props->dc;
@@ -36,7 +46,7 @@ seg_display_sig_props_async(struct sig_props *props, bool *done)
 	seg_data_to_diaplay[6] = SEG_ADDR_DC_LO;
 	seg_data_to_diaplay[7] = byte_lo(dc);
 
-	seg_display_done = done;
+	*seg_display_done = done;
 
 	spi_write_byte_async(seg_data_to_diaplay[0]);
 	seg_data_to_diaplay_i = 1;
@@ -45,15 +55,15 @@ seg_display_sig_props_async(struct sig_props *props, bool *done)
 void
 seg_display_sig_props_async_continue()
 {
-	assert(seg_display_done);
+	assert(*seg_display_done);
 
 	if (!spi_write_byte_async_done()) {
 		return; // yield
 	}
 
 	if (seg_data_to_diaplay_i >= SEG_DATA_TO_DISPLAY_ARR_SIZE) {
-		*seg_display_done = true;
-		seg_display_done = NULL;
+		**seg_display_done = true;
+		*seg_display_done = NULL;
 		return;
 	}
 
