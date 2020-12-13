@@ -128,7 +128,7 @@ uart_read_byte_async(byte_t *b, bool *ready, int *err)
 	assert(ready);
 
 	static struct uart_read_byte_async_intr_handler_args args;
-	assert(uart_rx_intr_handler_args == &args); // async read in progress
+	assert(uart_rx_intr_handler_args == NULL); // Check if async read in progress
 
 	args = (struct uart_read_byte_async_intr_handler_args) {
 		b = b,

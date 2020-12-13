@@ -25,7 +25,7 @@ sig_init(unsigned long cpu_freq)
 	// We are using frequency divider
 	sig_tfreq = cpu_freq / 8;
 	// Check if we have enough tackts for sig_tfreq
-	assert (sig_tfreq / SIG_5KHZ > T0_MAX_TACTS);
+	assert ((sig_tfreq / SIG_5KHZ) < T0_MAX_TACTS);
 
 	// Set frequency divider cpu_freq / 8
 	TCCR0 = (1 << CS01);
