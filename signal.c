@@ -120,10 +120,15 @@ sig_generate(struct sig_generator_task *task, bool *done)
 	assert(task);
 	assert(done);
 
+	static bool *done_buf;
+	assert(sig_t0_intr_handler_done == NULL); // Check if async read in progress
+
+	done_buf = done;
+	sig_t0_intr_handler_done = done_buf;
+
 	if ((SIG_PIN & (1 << SIG_OUT)) != task->level) {
 		SIG_PORT ^= (1 << SIG_OUT);
 	}
 
 	TCNT0 = T0_MAX_TACTS - task->tacts - 1;
-	sig_t0_intr_handler_done = done;
 }
