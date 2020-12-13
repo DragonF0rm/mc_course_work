@@ -29,10 +29,10 @@ spi_init(void)
 	SPI_DIR  |= (1 << SPI_SS)|(1 << SPI_MOSI)|(1 << SPI_SCK);
 	// SPI_SS behaves as general io port, set signal to 0
 	SPI_PORT &= (!(1 <<SPI_SS));
-	// Endble SPI, Master
-	SPCR = (1 << SPE)|(1 << MSTR);
 	// Set SPI_SCK as cpu_freq/2 (fastest available)
 	SPSR |= (1 << SPI2X);
+	// Endble SPI, Master
+	SPCR = (1 << SPE)|(1 << MSTR);
 
 	spi_initialized = true;
 
