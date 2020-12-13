@@ -6,16 +6,16 @@
 
 #define T0_MAX_TACTS 256
 
-#define SIG_PORT	PORTB	/* Register to enable pull up resistors / write data */
-#define SIG_DIR		DDRB	/* Register to specify port direction: read/write */
-#define SIG_PIN		PINB	/* Register to read data */
-#define SIG_OUT		6	/* Offset in port registers for output signal */
+#define SIG_PORT	PORTD	/* Register to enable pull up resistors / write data */
+#define SIG_DIR		DDRD	/* Register to specify port direction: read/write */
+#define SIG_PIN		PIND	/* Register to read data */
+#define SIG_OUT		7	/* Offset in port registers for output signal */
 
 static bool sig_initialized = false;
 static unsigned long sig_tfreq = 0; // Timer frequency
 
 void
-sig_init(unsigned long xtal)
+sig_init(unsigned long cpu_freq)
 {
 	// Disable global interrupts
 	cli();
@@ -23,11 +23,11 @@ sig_init(unsigned long xtal)
 	assert(!sig_initialized);
 
 	// We are using frequency divider
-	sig_tfreq = xtal / 8;
+	sig_tfreq = cpu_freq / 8;
 	// Check if we have enough tackts for sig_tfreq
 	assert (sig_tfreq / SIG_5KHZ > T0_MAX_TACTS);
 
-	// Set frequency divider xtal / 8
+	// Set frequency divider cpu_freq / 8
 	TCCR0 = (1 << CS01);
 	// Enable T0 interrupts
 	TIMSK |= (1 << TOIE0);

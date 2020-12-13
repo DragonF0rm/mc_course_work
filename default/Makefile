@@ -37,7 +37,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = buttons.o course_work.o signal.o uart.o 
+OBJECTS = buttons.o course_work.o signal.o uart.o seven_segment.o spi.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -56,6 +56,12 @@ signal.o: ../signal.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 uart.o: ../uart.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+seven_segment.o: ../seven_segment.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+spi.o: ../spi.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link

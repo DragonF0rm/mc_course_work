@@ -6,7 +6,7 @@
 #include "byte.h"
 
 void
-uart_init(unsigned long xtal, unsigned long baud_rate);
+uart_init(unsigned long cpu_freq, unsigned long baud_rate);
 
 typedef void (*uart_intr_handler_t)(void *args);
 

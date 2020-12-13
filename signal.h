@@ -6,7 +6,7 @@
 #include "byte.h"
 
 void
-sig_init(unsigned long xtal);
+sig_init(unsigned long cpu_freq);
 
 enum sig_frequency {
 	SIG_5KHZ  = 5000,

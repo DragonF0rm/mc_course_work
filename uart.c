@@ -11,17 +11,17 @@
 static bool uart_initialized = false;
 
 void
-uart_init(unsigned long xtal, unsigned long baud_rate)
+uart_init(unsigned long cpu_freq, unsigned long baud_rate)
 {
 	// Disable global interrupts
 	cli();
 
 	assert(!uart_initialized);
-	assert(xtal > 0);
+	assert(cpu_freq > 0);
 	assert(baud_rate > 0);
 
 	// Set baud rate
-	unsigned long baud_driver = xtal / (16 * baud_rate) - 1;
+	unsigned long baud_driver = cpu_freq / (16 * baud_rate) - 1;
 	UBRRL = byte_lo(baud_driver);
 	UBRRH = byte_hi(baud_driver);
 
