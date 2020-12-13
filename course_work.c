@@ -32,7 +32,7 @@ main(void)
 	struct sig_props props;
 	struct sig_generator_task tasks[SIG_GEN_TASKS_CNT];
 	size_t task_i = SIG_GEN_TASKS_CNT;
-	bool   task_done = true;
+	bool   *task_done = NULL;
 
 	// Better store it in separete variables to prevent override in a middle of io
 	byte_t props_displayed_byte = -1;
@@ -49,18 +49,16 @@ main(void)
 
 	// Event loop
 	for (;;) {
-		if (task_done && task_i == SIG_GEN_TASKS_CNT) {
+		if ((task_done == NULL || *task_done) && task_i == SIG_GEN_TASKS_CNT) {
 			// Period done, should update signal props and restart
 			sig_parse_props(props_byte, &props);
 			sig_get_generator_tasks(&props, tasks);
 			task_i = 0;
-			task_done = false;
-			sig_generate(&(tasks[task_i]), &task_done);
+			task_done = sig_generate(&(tasks[task_i]));
 			task_i++;
-		} else if (task_done) {
-			// Task done, should start next
-			task_done = false;
-			sig_generate(&(tasks[task_i]), &task_done);
+		} else if (task_done && *task_done) {
+			// Task done (half of a period), should start next
+			task_done = sig_generate(&(tasks[task_i]));
 			task_i++;
 		} else if (uart_ready) {
 			// Got uart data, should save

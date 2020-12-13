@@ -41,7 +41,7 @@ void
 sig_get_generator_tasks(struct sig_props *props,
 			struct sig_generator_task tasks[SIG_GEN_TASKS_CNT]);
 
-void
-sig_generate(struct sig_generator_task *task, bool *done);
+bool *
+sig_generate(struct sig_generator_task *task);
 
 #endif
