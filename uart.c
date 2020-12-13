@@ -8,16 +8,6 @@
 #define UART_RX_READY (UCSRA & (1 << RXC))
 #define UART_TX_READY (UCSRA & (1 << UDRE))
 
-static uart_intr_handler_t uart_rx_intr_handler = NULL;
-static void **uart_rx_intr_handler_args = NULL;
-
-ISR(USART_RXC_vect)
-{
-	if (uart_rx_intr_handler) {
-		uart_rx_intr_handler(*uart_rx_intr_handler_args);
-	}
-}
-
 static bool uart_initialized = false;
 
 void
@@ -29,8 +19,6 @@ uart_init(unsigned long cpu_freq, unsigned long baud_rate)
 	assert(!uart_initialized);
 	assert(cpu_freq > 0);
 	assert(baud_rate > 0);
-
-	*uart_rx_intr_handler_args = NULL;
 
 	// Set baud rate
 	unsigned long baud_driver = cpu_freq / (16 * baud_rate) - 1;
@@ -52,6 +40,16 @@ uart_init(unsigned long cpu_freq, unsigned long baud_rate)
 	sei();
 }
 
+static uart_intr_handler_t uart_rx_intr_handler = NULL;
+static void *uart_rx_intr_handler_args = NULL;
+
+ISR(USART_RXC_vect)
+{
+	if (uart_rx_intr_handler) {
+		uart_rx_intr_handler(uart_rx_intr_handler_args);
+	}
+}
+
 void
 uart_set_rx_intr_handler(uart_intr_handler_t handler, void *args)
 {
@@ -59,7 +57,7 @@ uart_set_rx_intr_handler(uart_intr_handler_t handler, void *args)
 	cli();
 
 	uart_rx_intr_handler = handler;
-	*uart_rx_intr_handler_args = args;
+	uart_rx_intr_handler_args = args;
 
 	// Enable global interrupts
 	sei();
@@ -120,7 +118,7 @@ uart_read_byte_async_intr_handler(void *raw_args)
 
 	// Clean up
 	uart_rx_intr_handler = NULL;
-	*uart_rx_intr_handler_args = NULL;
+	uart_rx_intr_handler_args = NULL;
 }
 
 void
@@ -130,7 +128,7 @@ uart_read_byte_async(byte_t *b, bool *ready, int *err)
 	assert(ready);
 
 	static struct uart_read_byte_async_intr_handler_args args;
-	assert(*uart_rx_intr_handler_args == NULL); // Check if async read in progress
+	assert(uart_rx_intr_handler_args == NULL); // Check if async read in progress
 
 	args = (struct uart_read_byte_async_intr_handler_args) {
 		b = b,

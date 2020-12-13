@@ -11,16 +11,6 @@
 #define SIG_PIN		PIND	/* Register to read data */
 #define SIG_OUT		7	/* Offset in port registers for output signal */
 
-static bool **sig_t0_intr_handler_done;
-
-ISR(TIMER0_OVF_vect)
-{
-	if (*sig_t0_intr_handler_done) {
-		**sig_t0_intr_handler_done = true;
-		*sig_t0_intr_handler_done = NULL;
-	}
-}
-
 static bool sig_initialized = false;
 static unsigned long sig_tfreq = 0; // Timer frequency
 
@@ -31,8 +21,6 @@ sig_init(unsigned long cpu_freq)
 	cli();
 
 	assert(!sig_initialized);
-
-	*sig_t0_intr_handler_done = NULL;
 
 	// We are using frequency divider
 	sig_tfreq = cpu_freq / 8;
@@ -115,10 +103,20 @@ sig_get_generator_tasks(struct sig_props *props,
 	tasks[1].level = false;
 }
 
+bool *sig_t0_intr_handler_done = NULL;
+
+ISR(TIMER0_OVF_vect)
+{
+	if (sig_t0_intr_handler_done) {
+		*sig_t0_intr_handler_done = true;
+		sig_t0_intr_handler_done = NULL;
+	}
+}
+
 void
 sig_generate(struct sig_generator_task *task, bool *done)
 {
-	assert(*sig_t0_intr_handler_done == NULL);
+	assert(sig_t0_intr_handler_done == NULL);
 	assert(task);
 	assert(done);
 
@@ -127,5 +125,5 @@ sig_generate(struct sig_generator_task *task, bool *done)
 	}
 
 	TCNT0 = T0_MAX_TACTS - task->tacts - 1;
-	*sig_t0_intr_handler_done = done;
+	sig_t0_intr_handler_done = done;
 }
