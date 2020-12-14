@@ -25,7 +25,7 @@ sig_init(unsigned long cpu_freq)
 	// We are using frequency divider
 	sig_tfreq = cpu_freq / 8;
 	// Check if we have enough tackts for sig_tfreq
-	assert (sig_tfreq / SIG_5KHZ > T0_MAX_TACTS);
+	assert ((sig_tfreq / SIG_5KHZ) < T0_MAX_TACTS);
 
 	// Set frequency divider cpu_freq / 8
 	TCCR0 = (1 << CS01);
@@ -103,7 +103,7 @@ sig_get_generator_tasks(struct sig_props *props,
 	tasks[1].level = false;
 }
 
-bool *sig_t0_intr_handler_done = NULL;
+static bool *sig_t0_intr_handler_done = NULL;
 
 ISR(TIMER0_OVF_vect)
 {

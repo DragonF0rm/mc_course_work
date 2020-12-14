@@ -1,3 +1,6 @@
+#define F_CPU		4000000L
+#define BAUD_RATE	9600L
+
 #include <stddef.h>
 
 #include <avr/interrupt.h>
@@ -9,24 +12,16 @@
 #include "signal.h"
 #include "uart.h"
 
-#define CW_CPU_FREQ	8000000L
-#define CW_BAUD_RATE	9600L
-
 int
 main(void)
 {
-	uart_init(CW_CPU_FREQ, CW_BAUD_RATE);
+	uart_init(F_CPU, BAUD_RATE);
 	btns_init();
-	sig_init(CW_CPU_FREQ);
+	sig_init(F_CPU);
 	spi_init();
 
 	// Enable global interrupts
 	sei();
-
-	// Enable change of interrupt vectors
-	GICR = (1 << IVCE);
-	// Move interrupts to boot Flash section
-	GICR = (1 << IVSEL);
 
 	byte_t props_byte = 0;
 	struct sig_props props;

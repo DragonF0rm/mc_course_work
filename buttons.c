@@ -117,7 +117,7 @@ btns_read_byte_async(byte_t *b, bool *ready)
 	assert(ready);
 
 	static struct btns_read_byte_async_intr_handler_args args;
-	assert(btns_intr_handler_args == &args); // async read in progress
+	assert(btns_intr_handler_args == NULL); // Check if async read in progress
 
 	args = (struct btns_read_byte_async_intr_handler_args) {
 		b = b,
