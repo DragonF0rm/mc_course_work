@@ -15,6 +15,7 @@
 int
 main(void)
 {
+	// Internal initialization
 	uart_init(F_CPU, BAUD_RATE);
 	btns_init();
 	sig_init(F_CPU);
@@ -22,6 +23,9 @@ main(void)
 
 	// Enable global interrupts
 	sei();
+
+	// External initialization
+	seg_init();
 
 	byte_t props_byte = 0;
 	struct sig_props props;
@@ -69,6 +73,7 @@ main(void)
 			btns_read_byte_async(&btns_b, &btns_ready);
 		} else if (props_displayed_byte != props_byte && display_done) {
 			// Real props differs from displayed, should display new one
+			display_done = false;
 			props_displayed_byte = props_byte;
 			sig_parse_props(props_displayed_byte, &props_displayed);
 			seg_display_sig_props_async(&props_displayed, &display_done);

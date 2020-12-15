@@ -7,7 +7,7 @@
 
 #define SPI_PORT	PORTB	/* Register to enable pull up resistors / write data */
 #define SPI_DIR		DDRB	/* Register to specify port direction: read/write */
-#define SPI_PIN		PIND	/* Register to read data */
+#define SPI_PIN		PINB	/* Register to read data */
 #define SPI_SS		2	/* Pin of SPI Slave Select */
 #define SPI_MOSI	3	/* Pin of SPI Master Output Slave Input */
 #define SPI_MISO	4	/* Pin of SPI Master Input Slave Output */
@@ -28,11 +28,9 @@ spi_init(void)
 	// Configuring SPI_SS, SPI_MOSI and SPI_SCK as output
 	SPI_DIR  |= (1 << SPI_SS)|(1 << SPI_MOSI)|(1 << SPI_SCK);
 	// SPI_SS behaves as general io port, set signal to 0
-	SPI_PORT &= (!(1 <<SPI_SS));
-	// Set SPI_SCK as cpu_freq/2 (fastest available)
-	SPSR |= (1 << SPI2X);
-	// Endble SPI, Master
-	SPCR = (1 << SPE)|(1 << MSTR);
+	SPI_PORT &= (!(1 << SPI_SS));
+	// Endble SPI, Master, frequency divider F_CPU/16
+	SPCR = (1 << SPE)|(1 << MSTR)|(1 << SPR0);
 
 	spi_initialized = true;
 
@@ -41,28 +39,12 @@ spi_init(void)
 }
 
 void
-spi_write_byte(byte_t b)
+spi_write(const byte_t *b, size_t len)
 {
-	// Check if write already in progress
-	assert(SPI_WRITE_DONE);
+	assert(b);
 
-	SPDR = b;
-
-	// Wait for SPI write to complete
-	while (!SPI_WRITE_DONE);
-}
-
-void
-spi_write_byte_async(byte_t b)
-{
-	// Check if write already in progress
-	assert(SPI_WRITE_DONE);
-
-	SPDR = b;
-}
-
-bool
-spi_write_byte_async_done()
-{
-	return SPI_WRITE_DONE;
+	for (size_t i = 0; i < len; i++) {
+		SPDR = b[i];
+		while (!SPI_WRITE_DONE); // Wait for SPI write to complete
+	}
 }

@@ -2,6 +2,7 @@
 #define SPI_H_ 1
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "byte.h"
 
@@ -9,12 +10,6 @@ void
 spi_init(void);
 
 void
-spi_write_byte(byte_t b);
-
-void
-spi_write_byte_async(byte_t b);
-
-bool
-spi_write_byte_async_done();
+spi_write(const byte_t *b, size_t len);
 
 #endif
