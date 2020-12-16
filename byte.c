@@ -26,7 +26,7 @@ bit_clr(byte_t *dest, byte_t bit)
 	assert(dest);
 	assert(bit <= 7);
 
-	*dest &= (!(1 << bit));
+	*dest &= (~(1 << bit));
 }
 
 void

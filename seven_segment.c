@@ -18,6 +18,7 @@
 static byte_t seg_data_to_display[SEG_DATA_TO_DISPLAY_ARR_SIZE] =
 	{SEG_ADDR_FREQ_HI, 0, SEG_ADDR_FREQ_LO, 0, SEG_ADDR_DC_HI, 0, SEG_ADDR_DC_LO, 0};
 static size_t seg_data_to_display_i = 0;
+static size_t seg_data_len = SEG_DATA_TO_DISPLAY_ARR_SIZE;
 static bool *seg_display_done = NULL;
 
 bool seg_initialized = false;
@@ -43,36 +44,44 @@ seg_init(void)
 	seg_initialized = true;
 }
 
+#define seg_digit_lo(_x) ((_x % 100) % 10)
+#define seg_digit_hi(_x) (((_x % 100) / 10) % 10)
+
 void
 seg_display_sig_props_async(struct sig_props *props, bool *done)
 {
 	// Check if nodisplaying in progress
 	assert(seg_display_done == NULL);
 
-	int freq_khz = props->freq / 1000;
-	int dc = props->dc;
+	byte_t freq_khz = byte_lo(props->freq / 1000);
+	byte_t dc = byte_lo(props->dc);
 
 	seg_data_to_display[0] = SEG_ADDR_FREQ_HI;
-	seg_data_to_display[1] = byte_hi(freq_khz);
+	seg_data_to_display[1] = seg_digit_hi(freq_khz);
 	seg_data_to_display[2] = SEG_ADDR_FREQ_LO;
-	seg_data_to_display[3] = byte_lo(freq_khz);
+	seg_data_to_display[3] = seg_digit_lo(freq_khz);
 	seg_data_to_display[4] = SEG_ADDR_DC_HI;
-	seg_data_to_display[5] = byte_hi(dc);
+	seg_data_to_display[5] = seg_digit_hi(dc);
 	seg_data_to_display[6] = SEG_ADDR_DC_LO;
-	seg_data_to_display[7] = byte_lo(dc);
+	seg_data_to_display[7] = seg_digit_lo(dc);
 
 	seg_display_done = done;
+	seg_data_len = SEG_DATA_TO_DISPLAY_ARR_SIZE;
+	seg_data_to_display_i = 0;
 
-	max7219_write(seg_data_to_display[0], seg_data_to_display[1]);
-	seg_data_to_display_i = 2;
+	if (props->freq == SIG_FR_UNDEF)
+		seg_data_to_display_i = 4;
+	if (props->dc == SIG_DC_UNDEF)
+		seg_data_len = SEG_DATA_TO_DISPLAY_ARR_SIZE / 2;
 }
 
 void
 seg_display_sig_props_async_continue()
 {
 	assert(seg_display_done);
+	assert(seg_data_len <= SEG_DATA_TO_DISPLAY_ARR_SIZE);
 
-	if (seg_data_to_display_i >= SEG_DATA_TO_DISPLAY_ARR_SIZE) {
+	if (seg_data_to_display_i >= seg_data_len) {
 		*seg_display_done = true;
 		seg_display_done = NULL;
 		return;

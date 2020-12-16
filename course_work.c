@@ -50,7 +50,12 @@ main(void)
 	for (;;) {
 		if (task_done && task_i == SIG_GEN_TASKS_CNT) {
 			// Period done, should update signal props and restart
-			sig_parse_props(props_byte, &props);
+			struct sig_props new_props;
+			sig_parse_props(props_byte, &new_props);
+			if (new_props.freq != SIG_FR_UNDEF)
+				props.freq = new_props.freq;
+			if (new_props.dc != SIG_DC_UNDEF)
+				props.dc = new_props.dc;
 			sig_get_generator_tasks(&props, tasks);
 			task_i = 0;
 			task_done = false;

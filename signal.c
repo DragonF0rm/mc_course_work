@@ -28,14 +28,15 @@ sig_init(unsigned long cpu_freq)
 	assert ((sig_tfreq / SIG_5KHZ) < T0_MAX_TACTS);
 
 	// Set frequency divider cpu_freq / 8
-	TCCR0 = (1 << CS01);
+	TCCR0 = 0;
+	bit_set(&TCCR0, CS01);
 	// Enable T0 interrupts
-	TIMSK |= (1 << TOIE0);
+	bit_set(&TIMSK, TOIE0);
 
 	// Set SIG_OUT to output
-	SIG_DIR  |= (1 << SIG_OUT);
+	bit_set(&SIG_DIR, SIG_OUT);
 	// Default output: 0
-	SIG_PORT &= (!(1 << SIG_OUT));
+	bit_clr(&SIG_PORT, SIG_OUT);
 
 	sig_initialized = true;
 
@@ -46,41 +47,43 @@ sig_init(unsigned long cpu_freq)
 void
 sig_parse_props(byte_t b, struct sig_props *props)
 {
-	// Bytes are interpreted like: 0000xxyy,
-	//   where 0 - garbage, xx - code of frequency, yy - code of duty cycle
+	// Bytes are interpreted like: 0xxx0yyy,
+	//   where 0 - undef flag, xxxx - code of frequency, yyyy - code of duty cycle
 
-	enum sig_frequency freq = SIG_5KHZ;
-	byte_t freq_code = (b & ((1 << 3)|(1 << 2))) >> 2;
-	switch (freq_code) {
-	case 0:
-		freq = SIG_5KHZ;
-		break;
-	case 1:
-		freq = SIG_10KHZ;
-		break;
-	case 2:
-		freq = SIG_15KHZ;
-		break;
-	case 3:
-		freq = SIG_20KHZ;
-		break;
+	enum sig_frequency freq = SIG_FR_UNDEF;
+	if (!bit_get(&b, SIG_FR_ENCODING_UNDEF_BIT)) {
+		switch (b & SIG_FR_ENCODING_MASK) {
+		case 0x00:
+			freq = SIG_5KHZ;
+			break;
+		case 0x10:
+			freq = SIG_10KHZ;
+			break;
+		case 0x20:
+			freq = SIG_15KHZ;
+			break;
+		case 0x30:
+			freq = SIG_20KHZ;
+			break;
+		}
 	}
 
-	enum sig_duty_cycle dc = SIG_2DC;
-	byte_t dc_code = (b & ((1 << 1)|(1 << 0)));
-	switch (dc_code) {
-	case 0:
-		dc_code = SIG_2DC;
-		break;
-	case 1:
-		dc_code = SIG_4DC;
-		break;
-	case 2:
-		dc_code = SIG_6DC;
-		break;
-	case 3:
-		dc_code = SIG_8DC;
-		break;
+	enum sig_duty_cycle dc = SIG_DC_UNDEF;
+	if (!bit_get(&b, SIG_DC_ENCODING_UNDEF_BIT)) {
+		switch (b & SIG_DC_ENCODING_MASK) {
+		case 0x00:
+			dc = SIG_2DC;
+			break;
+		case 0x01:
+			dc = SIG_4DC;
+			break;
+		case 0x02:
+			dc = SIG_6DC;
+			break;
+		case 0x03:
+			dc = SIG_8DC;
+			break;
+		}
 	}
 
 	props->freq = freq;
@@ -120,9 +123,7 @@ sig_generate(struct sig_generator_task *task, bool *done)
 	assert(task);
 	assert(done);
 
-	if ((SIG_PIN & (1 << SIG_OUT)) != task->level) {
-		SIG_PORT ^= (1 << SIG_OUT);
-	}
+	bit_def(&SIG_PORT, SIG_OUT, task->level);
 
 	TCNT0 = T0_MAX_TACTS - task->tacts - 1;
 	sig_t0_intr_handler_done = done;
