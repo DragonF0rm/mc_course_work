@@ -2,6 +2,7 @@
 #define SIGNAL_H_ 1
 
 #include <stdbool.h>
+#include <stddef.h>
 
 #include "byte.h"
 
@@ -44,13 +45,13 @@ struct sig_generator_task {
 	bool level;
 };
 
-#define SIG_GEN_TASKS_CNT 2
+#define SIG_GEN_TASK_ARR_MAX_LEN 256
+
+size_t
+sig_get_meander_generator_tasks(struct sig_props *props,
+				struct sig_generator_task task_arr[SIG_GEN_TASK_ARR_MAX_LEN]);
 
 void
-sig_get_generator_tasks(struct sig_props *props,
-			struct sig_generator_task tasks[SIG_GEN_TASKS_CNT]);
-
-void
-sig_generate(struct sig_generator_task *task, bool *done);
+sig_generate(struct sig_generator_task *task, size_t task_arr_len);
 
 #endif

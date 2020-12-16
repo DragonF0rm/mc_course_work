@@ -90,41 +90,78 @@ sig_parse_props(byte_t b, struct sig_props *props)
 	props->dc = dc;
 }
 
-void
-sig_get_generator_tasks(struct sig_props *props,
-			struct sig_generator_task tasks[SIG_GEN_TASKS_CNT])
+size_t
+sig_get_meander_generator_tasks(struct sig_props *props,
+				struct sig_generator_task task_arr[SIG_GEN_TASK_ARR_MAX_LEN])
 {
 	assert(props);
-	assert(tasks);
+	assert(task_arr);
 
-	byte_t tacts = (byte_t) sig_tfreq / props->freq;
+	size_t task_arr_len = props->dc;
+	uint32_t tacts = (uint32_t) sig_tfreq / (uint32_t) props->freq / (uint32_t) props->dc;
 
-	tasks[0].tacts = (byte_t) tacts / 10 * props->dc;
-	tasks[0].level = true;
+	assert(tacts < T0_MAX_TACTS);
 
-	tasks[1].tacts = tacts - tasks[0].tacts;
-	tasks[1].level = false;
+	task_arr[0].tacts = (byte_t) tacts;
+	task_arr[0].level = true;
+
+	for (size_t i = 1; i < task_arr_len; i++) {
+		task_arr[i].tacts = tacts;
+		task_arr[i].level = false;
+	}
+
+	return task_arr_len;
 }
 
-static bool *sig_t0_intr_handler_done = NULL;
+
+static struct sig_generator_task sig_gen_task_arr[SIG_GEN_TASK_ARR_MAX_LEN];
+static size_t sig_gen_task_arr_len = 0;
+static struct sig_generator_task *sig_gen_new_task_arr = NULL;
+static size_t sig_gen_new_task_arr_len = 0;
+static size_t sig_gen_task_arr_i = 0;
+static bool sig_gen_task_arr_enabled = false;
+static bool sig_gen_task_arr_need_update = false;
 
 ISR(TIMER0_OVF_vect)
 {
-	if (sig_t0_intr_handler_done) {
-		*sig_t0_intr_handler_done = true;
-		sig_t0_intr_handler_done = NULL;
+	if (sig_gen_task_arr_need_update) {
+		assert(sig_gen_new_task_arr);
+		assert(sig_gen_new_task_arr_len > 0);
+		assert(sig_gen_new_task_arr_len <= SIG_GEN_TASK_ARR_MAX_LEN);
+
+		for (size_t i = 0; i < sig_gen_new_task_arr_len; i++) {
+			sig_gen_task_arr[i] = sig_gen_new_task_arr[i];
+		}
+		sig_gen_task_arr_len = sig_gen_new_task_arr_len;
+		sig_gen_task_arr_i = 0;
+		sig_gen_task_arr_need_update = false;
+	}
+
+	if (sig_gen_task_arr_enabled) {
+		struct sig_generator_task task =
+			sig_gen_task_arr[sig_gen_task_arr_i % sig_gen_task_arr_len];
+		bit_def(&SIG_PORT, SIG_OUT, task.level);
+		TCNT0 = T0_MAX_TACTS - task.tacts - 1;
+		sig_gen_task_arr_i++;
 	}
 }
 
 void
-sig_generate(struct sig_generator_task *task, bool *done)
+sig_generate(struct sig_generator_task *task_arr, size_t task_arr_len)
 {
-	assert(sig_t0_intr_handler_done == NULL);
-	assert(task);
-	assert(done);
+	assert(task_arr);
+	assert(task_arr_len > 0);
+	assert(task_arr_len <= SIG_GEN_TASK_ARR_MAX_LEN);
 
-	bit_def(&SIG_PORT, SIG_OUT, task->level);
+	sig_gen_new_task_arr = task_arr;
+	sig_gen_new_task_arr_len = task_arr_len;
+	sig_gen_task_arr_need_update = true;
+	sig_gen_task_arr_enabled = true;
 
-	TCNT0 = T0_MAX_TACTS - task->tacts - 1;
-	sig_t0_intr_handler_done = done;
+	// Wait until update is done
+	while(sig_gen_task_arr_need_update);
+
+	// Clean up
+	sig_gen_new_task_arr = NULL;
+	sig_gen_new_task_arr_len = 0;
 }
