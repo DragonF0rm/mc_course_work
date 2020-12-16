@@ -37,7 +37,7 @@ HEX_EEPROM_FLAGS += --change-section-lma .eeprom=0 --no-change-warnings
 
 
 ## Objects that must be built in order to link
-OBJECTS = buttons.o course_work.o signal.o uart.o seven_segment.o spi.o max7219.o 
+OBJECTS = buttons.o course_work.o signal.o uart.o seven_segment.o spi.o max7219.o byte.o 
 
 ## Objects explicitly added by the user
 LINKONLYOBJECTS = 
@@ -65,6 +65,9 @@ spi.o: ../spi.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 max7219.o: ../max7219.c
+	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
+
+byte.o: ../byte.c
 	$(CC) $(INCLUDES) $(CFLAGS) -c  $<
 
 ##Link
