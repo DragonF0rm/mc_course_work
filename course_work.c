@@ -1,4 +1,4 @@
-#define F_CPU		1000000L
+#define F_CPU		4000000L
 #define BAUD_RATE	9600L
 
 #include <stddef.h>
