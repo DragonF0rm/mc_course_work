@@ -107,14 +107,13 @@ uart_read_byte_async_intr_handler(void *raw_args)
 
 	byte_t b = 0;
 	int err = uart_read_byte(&b);
+	if (err && must_read)
+		return; // Try next time
 
 	*(args->b) = b;
-	if (must_read) {
+	if (!must_read)
 		*(args->err) = err;
-		*(args->ready) = true;
-	} else {
-		*(args->ready) = (err == 0);
-	}
+	*(args->ready) = true;
 
 	// Clean up
 	uart_rx_intr_handler = NULL;

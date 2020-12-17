@@ -3,18 +3,26 @@
 #include <avr/interrupt.h>
 #include <avr/io.h>
 
+#include "signal.h"
+
 #include "buttons.h"
 
-#define BTNS_PORT	PORTD	/* Register to enable pull up resistors / write data */
-#define BTNS_DIR	DDRD	/* Register to specify port direction: read/write */
-#define BTNS_PIN	PIND	/* Register to read data */
-#define BTNS_EN		2	/* INT0 */
-#define BTNS_0		3
-#define BTNS_1		4
-#define BTNS_2		5
-#define BTNS_3		6
+#define BTNS_PORT	PORTD		/* Register to enable pull up resistors / write data */
+#define BTNS_DIR	DDRD		/* Register to specify port direction: read/write */
+#define BTNS_PIN	PIND		/* Register to read data */
+#define BTNS_EN		(byte_t)2	/* INT0 - any button pressed */
+#define BTNS_FR_LO	(byte_t)3
+#define BTNS_FR_HI	(byte_t)4
+#define BTNS_DC_LO	(byte_t)5
+#define BTNS_DC_HI	(byte_t)6
 
-#define BTNS_READY (BTNS_PIN & (1 << BTNS_EN))
+#define BTNS_EV_PORT	PORTB		/* Register to enable pull up resistors / write data */
+#define BTNS_EV_DIR	DDRB		/* Register to specify port direction: read/write */
+#define BTNS_EV_PIN	PINB		/* Register to read data */
+#define BTNS_EV_FR	(byte_t)0	/* Frequency button pressed */
+#define BTNS_EV_DC	(byte_t)7	/* Duty cycle button pressed */
+
+#define BTNS_READY (!(BTNS_PIN & (1 << BTNS_EN))) /* Triggered by falling edge */
 
 static bool btns_initialized = false;
 
@@ -31,17 +39,22 @@ btns_init(void)
 	// INT0 interrupt is triggerred by falling edge
 	MCUCR |= (1 << 1);
 
-	// Set all BTNS pins to input
-	BTNS_DIR  &= (!(1 << BTNS_EN)) &
-		(!(1 << BTNS_0)) &
-		(!(1 << BTNS_1)) &
-		(!(1 << BTNS_2)) &
-		(!(1 << BTNS_3));
-	BTNS_PORT |= (1 << BTNS_EN) |
-		(1 << BTNS_0) |
-		(1 << BTNS_1) |
-		(1 << BTNS_2) |
-		(1 << BTNS_3);
+	// Set all BTNS and BTNS_EV pins to input
+	bit_clr(&BTNS_DIR, BTNS_EN);
+	bit_clr(&BTNS_DIR, BTNS_FR_LO);
+	bit_clr(&BTNS_DIR, BTNS_FR_HI);
+	bit_clr(&BTNS_DIR, BTNS_DC_LO);
+	bit_clr(&BTNS_DIR, BTNS_DC_HI);
+	bit_clr(&BTNS_EV_DIR, BTNS_EV_DC);
+	bit_clr(&BTNS_EV_DIR, BTNS_EV_FR);
+	// Enable pull ups
+	bit_set(&BTNS_PORT, BTNS_EN);
+	bit_set(&BTNS_PORT, BTNS_FR_LO);
+	bit_set(&BTNS_PORT, BTNS_FR_HI);
+	bit_set(&BTNS_PORT, BTNS_DC_LO);
+	bit_set(&BTNS_PORT, BTNS_DC_HI);
+	bit_set(&BTNS_EV_PORT, BTNS_EV_DC);
+	bit_set(&BTNS_EV_PORT, BTNS_EV_FR);
 
 	btns_initialized = true;
 
@@ -78,13 +91,26 @@ btns_read_byte(void)
 	// Wait for user to press button
 	while (!BTNS_READY);
 
-	byte_t b = 0;
-	b |= ((BTNS_PIN & (1 << BTNS_0)) << 0) |
-		((BTNS_PIN & (1 << BTNS_1)) << 1) |
-		((BTNS_PIN & (1 << BTNS_2)) << 2) |
-		((BTNS_PIN & (1 << BTNS_3)) << 3);
+	// Buttons are 1 by default and 0 when pressed, inverting
+	byte_t btns_port_snap = ~BTNS_PIN;
+	byte_t btns_ev_port_snap = ~BTNS_EV_PIN;
+	byte_t sig_props_code = 0;
 
-	return b;
+	bit_copy(&btns_port_snap, &sig_props_code, BTNS_DC_LO, SIG_DC_ENCODING_START_BIT);
+	bit_copy(&btns_port_snap, &sig_props_code, BTNS_DC_HI, SIG_DC_ENCODING_START_BIT + 1);
+	bit_copy(&btns_port_snap, &sig_props_code, BTNS_FR_LO, SIG_FR_ENCODING_START_BIT);
+	bit_copy(&btns_port_snap, &sig_props_code, BTNS_FR_HI, SIG_FR_ENCODING_START_BIT + 1);
+
+	bool btns_ev_dc = bit_get(&btns_ev_port_snap, BTNS_EV_DC);
+	bool btns_ev_fr = bit_get(&btns_ev_port_snap, BTNS_EV_FR);
+
+	// Invalidating part of byte if no event got
+	if (!btns_ev_dc)
+		bit_set(&sig_props_code, SIG_DC_ENCODING_UNDEF_BIT);
+	if (!btns_ev_fr)
+		bit_set(&sig_props_code, SIG_FR_ENCODING_UNDEF_BIT);
+
+	return sig_props_code;
 }
 
 struct btns_read_byte_async_intr_handler_args {

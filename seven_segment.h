@@ -6,6 +6,9 @@
 #include "signal.h"
 
 void
+seg_init(void);
+
+void
 seg_display_sig_props_async(struct sig_props *props, bool *done);
 
 void
